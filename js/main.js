@@ -35,28 +35,81 @@
   if (root.classList.contains('intro')) {
     try { sessionStorage.setItem('dcm-intro', '1'); } catch (e) {}
     const stage = $('.intro-stage'), van = $('.intro-van'), mark = $('.intro-mark');
-    const START = 250, DRIVE = 3600, HOLD = 1000, LEAVE = 950;
+    const START = 150, DRIVE = 1900, HOLD = 1500, LEAVE = 950;
     introMs = START + DRIVE + HOLD;
-    const vw = van.getBoundingClientRect().width;
-    const sL = stage.getBoundingClientRect().left;
-    // each letter is a package that drops off the back of the van once it has passed
-    const tilt = [-14, 11, -8, 13, -11, 18];
+    // lock the page while the intro plays and always start at the very top
+    try { history.scrollRestoration = 'manual'; } catch (e) {}
+    scrollTo(0, 0);
+    const KEYS = ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' ', 'Spacebar'];
+    const block = (e) => { if (e.type !== 'keydown' || KEYS.includes(e.key)) e.preventDefault(); };
+    const holdTop = () => { if (scrollY) scrollTo(0, 0); };
+    addEventListener('wheel', block, { passive: false });
+    addEventListener('touchmove', block, { passive: false });
+    addEventListener('keydown', block);
+    addEventListener('scroll', holdTop);
+    setTimeout(() => {
+      removeEventListener('wheel', block); removeEventListener('touchmove', block);
+      removeEventListener('keydown', block); removeEventListener('scroll', holdTop);
+      scrollTo(0, 0);
+    }, introMs + LEAVE);
+    const vr = van.getBoundingClientRect(), vw = vr.width, vh = vr.height;
+    const sr = stage.getBoundingClientRect(), sL = sr.left, sB = sr.bottom;
+    const ROAD = 16, FLOOR = 4 + vh * 28 / 116; // road top / cargo floor (px from stage bottom)
+    // each letter rides in its own box: it slides out of the back door, bounces on the road,
+    // and the box comes apart to leave the letter in its place (first out, first opened)
+    const tilt = [-11, 9, -7, 10, -9, 12];
     const drops = $$('.drop', mark).map((el, i) => {
       const r = el.getBoundingClientRect();
-      el.style.setProperty('--r', tilt[i % tilt.length] + 'deg');
-      return { el, cx: r.left - sL + r.width / 2, done: false };
+      const w = r.width + 6, h = Math.min(r.height + 8, vh * 0.62);
+      const box = document.createElement('div');
+      box.className = 'pkg';
+      box.style.cssText = `width:${w}px;height:${h}px`;
+      box.innerHTML = '<i class="pk-l"></i><i class="pk-r"></i><i class="pk-fl"></i><i class="pk-fr"></i>';
+      stage.appendChild(box);
+      el.style.setProperty('--dy', (sB - r.top - r.height / 2) - (ROAD + h / 2) + 'px');
+      return { el, box, w, h, cx: r.left - sL + r.width / 2, tilt: tilt[i % tilt.length], t: null };
     });
-    // enters and leaves from beyond the screen edges
+    // enters and leaves fast, eases off while it drops the boxes
     const x0 = -sL - vw - 10, x1 = innerWidth - sL + 10;
-    const ease = (t) => -(Math.cos(Math.PI * t) - 1) / 2; // smooth in & out
+    const ease = (p) => p + 0.5 * Math.sin(2 * Math.PI * p) / (2 * Math.PI);
+    const T1 = 440, B1 = 210, B2 = 130, SETTLE = T1 + B1 + B2;
+    const squash = (dt, amp) => (dt > 0 && dt < 110 ? amp * Math.sin(Math.PI * dt / 110) : 0);
+    const place = (d, now) => {
+      const k = now - d.t;
+      let x, b, rot = 0;
+      if (k < T1) {
+        const u = k / T1;
+        x = d.sx + (d.cx - d.sx) * (1 - (1 - u) * (1 - u));
+        b = d.b0 + (ROAD - d.b0) * u * u + 22 * u * (1 - u);
+        rot = d.tilt * Math.sin(Math.PI * u);
+      } else {
+        x = d.cx;
+        const u1 = (k - T1) / B1, u2 = (k - T1 - B1) / B2;
+        b = ROAD + (u1 < 1 ? 12 * 4 * u1 * (1 - u1) : u2 < 1 ? 4 * 4 * u2 * (1 - u2) : 0);
+      }
+      const s = squash(k - T1, 0.16) + squash(k - T1 - B1, 0.08) + squash(k - SETTLE, 0.04);
+      d.box.style.transform = `translate(${x - d.w / 2}px,${-b}px) rotate(${rot}deg) scale(${1 + s * 0.6},${1 - s})`;
+      if (k >= SETTLE && !d.open) {
+        d.open = true;
+        d.box.classList.add('open');
+        d.el.classList.add('show');
+        setTimeout(() => d.box.remove(), 800);
+      }
+    };
     let t0 = null;
     const frame = (now) => {
       if (t0 === null) t0 = now;
       const p = Math.min(Math.max((now - t0 - START) / DRIVE, 0), 1);
       const x = x0 + (x1 - x0) * ease(p);
+      const rear = x + vw * 10 / 260;
       van.style.transform = `translateX(${x}px)`;
-      drops.forEach((d) => { if (!d.done && (x > d.cx + 8 || p === 1)) { d.done = true; d.el.classList.add('fall'); } });
-      if (p < 1) requestAnimationFrame(frame);
+      drops.forEach((d) => {
+        if (d.t === null && (rear > d.cx + d.w * 0.55 || p === 1)) {
+          d.t = now; d.sx = rear + d.w * 0.45; d.b0 = FLOOR; d.box.classList.add('go');
+        }
+        if (d.t !== null && !d.open) place(d, now);
+      });
+      if (p < 1 || drops.some((d) => !d.open)) requestAnimationFrame(frame);
     };
     requestAnimationFrame(frame);
     setTimeout(() => root.classList.add('intro-leave', 'hero-in'), introMs);
@@ -483,14 +536,22 @@
   // ---- How it works: van drives down the road as you scroll ----
   const road = $('.steps-road');
   const steps = $$('.step');
+  let onRoad = null; // receipt hooks in here (desktop)
+  const LINE = 0.55; // share of the screen height where the van sits
   if (road && steps.length) {
     const vanEl = $('.road-van', road), fill = $('.road-fill', road);
     let ticking = false;
+    // the road runs exactly from circle 1 to the last circle
+    const layout = () => {
+      road.style.bottom = 'auto';
+      road.style.height = (steps[steps.length - 1].getBoundingClientRect().top - steps[0].getBoundingClientRect().top) + 'px';
+    };
     const update = () => {
       ticking = false;
       const r = road.getBoundingClientRect();
-      const target = innerHeight * 0.55;
+      const target = innerHeight * LINE;
       const p = Math.max(0, Math.min(1, (target - r.top) / Math.max(1, r.height)));
+      if (onRoad) onRoad(p, target < r.top);
       const y = p * r.height;
       vanEl.style.transform = `translate3d(0, ${(y - 22).toFixed(1)}px, 0)`;
       fill.style.transform = `scaleY(${p.toFixed(4)})`;
@@ -501,19 +562,34 @@
     };
     const req = () => { if (!ticking) { ticking = true; requestAnimationFrame(update); } };
     addEventListener('scroll', req, { passive: true });
-    addEventListener('resize', req);
+    addEventListener('resize', () => { layout(); req(); });
+    layout();
     update();
+    road.relayout = () => { layout(); update(); };
   }
 
   // ---- Receipt fills in as the steps go by ----
   const receipt = $('#receipt');
   if (receipt) {
     const wide = matchMedia('(min-width: 960px)');
-    const setState = (n) => {
-      receipt.dataset.state = n;
-      steps.forEach((s) => s.classList.toggle('on', +s.dataset.step === n));
-    };
     const slot = $('.receipt-slot'), now = $('.rc-now');
+    const parts = $$('[data-on]', receipt);
+    // 1-3 = steps 1-3; 4-7 = step 4 told piece by piece; 8 = stamp
+    const LABELS = ['', 'Message us on WhatsApp.', 'Get your quote.', 'We remind you the day before.',
+      'We photograph your items.', 'You sign the pickup receipt.', 'You pay with Zelle or Apple Pay.',
+      'We deliver, with photos at drop-off.', 'Delivered the same day.'];
+    let cur = -1, curSt = -1;
+    const setState = (n, step) => {
+      const st = step === undefined ? Math.min(4, n) : step;
+      if (n === cur && st === curSt) return;
+      cur = n; curSt = st; receipt.dataset.state = n;
+      parts.forEach((el) => el.classList.toggle('lit', n >= +el.dataset.on));
+      receipt.classList.toggle('stamped', n >= 8);
+      steps.forEach((s) => s.classList.toggle('on', +s.dataset.step === st));
+      if (!n || wide.matches) return;
+      now.classList.add('swap');
+      setTimeout(() => { now.firstChild.textContent = st + '/4'; now.lastChild.textContent = LABELS[n]; now.classList.remove('swap'); }, 200);
+    };
     // shrink the sheet (CSS zoom keeps layout honest) so it is never cut off by the screen
     const fit = () => {
       receipt.style.zoom = 1;
@@ -521,40 +597,48 @@
       const room = innerHeight - headH - (wide.matches ? 48 : 20 + (now.offsetHeight || 0) + 10);
       receipt.style.zoom = Math.max(0.55, Math.min(1, room / receipt.offsetHeight)).toFixed(3);
     };
-    if (reduce || capture) setState(4);
+    const clamp01 = (v) => Math.max(0, Math.min(1, v));
+    if (reduce || capture) setState(8);
     else {
       slot.classList.add('pinned');
-      let cur = 0;
-      const titles = steps.map((s) => $('h3', s).textContent);
-      const setPhone = (n) => {
-        if (n === cur) return;
-        cur = n; receipt.dataset.state = n;
-        if (!n) return;
-        now.classList.add('swap');
-        setTimeout(() => { now.firstChild.textContent = n + '/4'; now.lastChild.textContent = titles[n - 1]; now.classList.remove('swap'); }, 200);
-      };
-      // desktop: the step in the middle of the screen drives the receipt
-      const stepIO = new IntersectionObserver((ents) => {
-        if (!wide.matches) return;
-        ents.forEach((en) => { if (en.isIntersecting) setState(+en.target.dataset.step); });
-      }, { rootMargin: '-40% 0px -50% 0px' });
-      steps.forEach((s) => stepIO.observe(s));
-      // phone: progress through the pinned track drives the receipt
       let tick = false;
       const track = () => {
         tick = false;
-        if (wide.matches) return;
+        if (wide.matches) return; // desktop is driven by the red line (onRoad)
+        // phone: progress through the pinned track drives all 8 stages
         const r = slot.getBoundingClientRect(), pin = slot.firstElementChild.offsetHeight;
-        const p = (innerHeight * 0.15 - r.top) / Math.max(1, r.height - pin);
+        const p = clamp01((innerHeight * 0.15 - r.top) / Math.max(1, r.height - pin));
         // stays blank until the sheet is well on screen, so the first ink is seen
-        setPhone(r.top > innerHeight * 0.45 ? 0 : Math.max(1, Math.min(4, 1 + Math.floor(p * 4))));
+        setState(r.top > innerHeight * 0.45 ? 0 : Math.min(8, 1 + Math.floor(p * 8.5)));
       };
       addEventListener('scroll', () => { if (!tick) { tick = true; requestAnimationFrame(track); } }, { passive: true });
+      addEventListener('resize', track);
       track();
+      // desktop: circles 1-3 light steps 1-3; between circles 3 and 4 the sheet finishes
+      // (photos → signature → payment → drop-off) and the stamp lands exactly on circle 4
+      onRoad = (p, before) => {
+        if (!wide.matches) return;
+        if (before) { setState(0, 0); return; }
+        const seg = p * 3;
+        if (p >= 0.999) { setState(8, 4); return; }
+        setState(seg < 2 ? 1 + Math.floor(seg) : 3 + Math.floor((seg - 2) * 5), 1 + Math.floor(seg));
+      };
     }
-    fit();
-    addEventListener('resize', fit);
-    wide.addEventListener('change', fit);
+    // desktop: size step 4 so the column ends right when circle 4 reaches the line,
+    // i.e. the sticky receipt stops moving the moment it is stamped (no long blank run after)
+    const sizeLast = () => {
+      const last = steps[steps.length - 1];
+      last.style.minHeight = '';
+      if (!wide.matches) return;
+      const headH = parseFloat(getComputedStyle(root).getPropertyValue('--head-h')) || 64;
+      const circle = parseFloat(getComputedStyle(last, '::before').top) + 22;
+      const stop = headH + 24 + slot.getBoundingClientRect().height; // receipt bottom while pinned
+      last.style.minHeight = Math.max(0, circle + stop - innerHeight * LINE) + 'px';
+    };
+    const relayout = () => { fit(); sizeLast(); if (road && road.relayout) road.relayout(); };
+    relayout();
+    addEventListener('resize', relayout);
+    wide.addEventListener('change', relayout);
   }
 
   // ---- Will it ride? item checker ----
