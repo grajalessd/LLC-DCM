@@ -604,6 +604,9 @@
       const headH = parseFloat(getComputedStyle(root).getPropertyValue('--head-h')) || 64;
       const room = innerHeight - headH - (wide.matches ? 48 : 20 + (now.offsetHeight || 0) + 10);
       receipt.style.zoom = Math.max(0.55, Math.min(1, room / receipt.offsetHeight)).toFixed(3);
+      // desktop: the sheet pins in the middle of the screen (below the header), not at the top
+      const h = slot.getBoundingClientRect().height;
+      slot.style.setProperty('--rc-top', Math.max(headH + 24, headH + (innerHeight - headH - h) / 2) + 'px');
     };
     const clamp01 = (v) => Math.max(0, Math.min(1, v));
     if (reduce || capture) setState(8);
@@ -641,7 +644,8 @@
       if (!wide.matches) return;
       const headH = parseFloat(getComputedStyle(root).getPropertyValue('--head-h')) || 64;
       const circle = parseFloat(getComputedStyle(last, '::before').top) + 22;
-      const stop = headH + 24 + slot.getBoundingClientRect().height; // receipt bottom while pinned
+      const top = parseFloat(slot.style.getPropertyValue('--rc-top')) || headH + 24;
+      const stop = top + slot.getBoundingClientRect().height; // receipt bottom while pinned
       last.style.minHeight = Math.max(0, circle + stop - innerHeight * LINE) + 'px';
     };
     const relayout = () => { fit(); sizeLast(); if (road && road.relayout) road.relayout(); };

@@ -284,7 +284,7 @@ body.menu-open{overflow:hidden}
   .step:not(.on) h3{color:#4d5f7a}
   .step:not(.on) p{color:#5d6f89}
   .step h3,.step p{transition:color .6s var(--ease-out)}
-  .receipt-slot{position:sticky;top:calc(var(--head-h) + 24px)}
+  .receipt-slot{position:sticky;top:var(--rc-top,calc(var(--head-h) + 24px))}
   /* equal spacing between the 4 circles; step 4 height is set in main.js so the receipt stops right as it is stamped */
   .step{min-height:42vh}
   .receipt{padding:32px 30px 26px}
