@@ -35,7 +35,7 @@
   if (root.classList.contains('intro')) {
     try { sessionStorage.setItem('dcm-intro', '1'); } catch (e) {}
     const stage = $('.intro-stage'), van = $('.intro-van'), mark = $('.intro-mark');
-    const START = 150, DRIVE = 1900, HOLD = 1500, LEAVE = 950;
+    const START = 120, DRIVE = 1500, HOLD = 1100, LEAVE = 750;
     introMs = START + DRIVE + HOLD;
     // lock the page while the intro plays and always start at the very top
     try { history.scrollRestoration = 'manual'; } catch (e) {}
@@ -72,7 +72,7 @@
     // enters and leaves fast, eases off while it drops the boxes
     const x0 = -sL - vw - 10, x1 = innerWidth - sL + 10;
     const ease = (p) => p + 0.5 * Math.sin(2 * Math.PI * p) / (2 * Math.PI);
-    const T1 = 440, B1 = 210, B2 = 130, SETTLE = T1 + B1 + B2;
+    const T1 = 360, B1 = 170, B2 = 100, SETTLE = T1 + B1 + B2;
     const squash = (dt, amp) => (dt > 0 && dt < 110 ? amp * Math.sin(Math.PI * dt / 110) : 0);
     const place = (d, now) => {
       const k = now - d.t;
@@ -601,19 +601,20 @@
     if (reduce || capture) setState(8);
     else {
       slot.classList.add('pinned');
-      let tick = false;
-      const track = () => {
-        tick = false;
-        if (wide.matches) return; // desktop is driven by the red line (onRoad)
-        // phone: progress through the pinned track drives all 8 stages
-        const r = slot.getBoundingClientRect(), pin = slot.firstElementChild.offsetHeight;
-        const p = clamp01((innerHeight * 0.15 - r.top) / Math.max(1, r.height - pin));
-        // stays blank until the sheet is well on screen, so the first ink is seen
-        setState(r.top > innerHeight * 0.45 ? 0 : Math.min(8, 1 + Math.floor(p * 8.5)));
+      // phone: the sheet fills itself in a loop (0 → 8, hold, clear, again), independent of scrolling;
+      // the timer only runs while the receipt is on screen
+      let timer = 0, seen = false, n = 0;
+      const STEP = 1100, HOLD = 2600, BLANK = 900;
+      const loop = () => {
+        timer = 0;
+        if (wide.matches || !seen) return;
+        n = n >= 8 ? 0 : n + 1;
+        setState(n);
+        timer = setTimeout(loop, n === 8 ? HOLD : n === 0 ? BLANK : STEP);
       };
-      addEventListener('scroll', () => { if (!tick) { tick = true; requestAnimationFrame(track); } }, { passive: true });
-      addEventListener('resize', track);
-      track();
+      const run = () => { clearTimeout(timer); timer = 0; if (seen && !wide.matches) timer = setTimeout(loop, n === 0 ? 400 : STEP); };
+      new IntersectionObserver(([e]) => { seen = e.isIntersecting; run(); }, { threshold: 0.35 }).observe(receipt);
+      wide.addEventListener('change', () => { n = 0; if (!wide.matches) setState(0, 0); run(); });
       // desktop: circles 1-3 light steps 1-3; between circles 3 and 4 the sheet finishes
       // (photos → signature → payment → drop-off) and the stamp lands exactly on circle 4
       onRoad = (p, before) => {
