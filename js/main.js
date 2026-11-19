@@ -30,6 +30,14 @@
     a.rel = 'noopener';
   });
 
+  // phones fire 'resize' every time the address bar slides in/out while scrolling;
+  // relaying out then makes the page jump and kills the swipe. On touch screens only react to real width changes.
+  const coarse = matchMedia('(pointer: coarse)');
+  const onResize = (fn) => {
+    let w = innerWidth;
+    addEventListener('resize', () => { if (coarse.matches && innerWidth === w) return; w = innerWidth; fn(); });
+  };
+
   // ---- Intro (home, first visit in this tab session) ----
   let introMs = 0;
   if (root.classList.contains('intro')) {
@@ -414,7 +422,7 @@
     const framing = (k) => (k ? m.fit(m.R[k].pts, m.stage.clientWidth < 700 ? 60 : 110) : m.fit(mainPts, m.stage.clientWidth < 700 ? 56 : 90));
     m.setVB(framing(null));
     let rz;
-    addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => m.setVB(framing(current)), 120); });
+    onResize(() => { clearTimeout(rz); rz = setTimeout(() => m.setVB(framing(current)), 120); });
 
     const rrTo = $('.rr-to'), rrMi = $('.rr-mi'), cta = $('#hero-cta');
     const readout = (k) => {
@@ -479,7 +487,7 @@
     const over = () => rm.fit(allPts, rm.stage.clientWidth < 700 ? 40 : 70);
     rm.setVB(over());
     let sel = null, rz2;
-    addEventListener('resize', () => { clearTimeout(rz2); rz2 = setTimeout(() => { if (!sel) rm.setVB(over()); }, 120); });
+    onResize(() => { clearTimeout(rz2); rz2 = setTimeout(() => { if (!sel) rm.setVB(over()); }, 120); });
 
     const norm = (s) => s.toLowerCase().replace(/,?\s*(la|tx|louisiana|texas)\.?$/, '').replace(/[^a-z]/g, '');
     const HOUSTON_AREA = ['houston', 'spring', 'cypress', 'kingwood', 'bellaire', 'missouricity', 'friendswood', 'stafford', 'richmond', 'rosenberg', 'atascocita', 'channelview', 'deerpark', 'laporte', 'seabrook', 'webster', 'clearlake', 'jerseyvillage', 'aldine', 'alvin', 'fulshear'];
@@ -562,7 +570,7 @@
     };
     const req = () => { if (!ticking) { ticking = true; requestAnimationFrame(update); } };
     addEventListener('scroll', req, { passive: true });
-    addEventListener('resize', () => { layout(); req(); });
+    onResize(() => { layout(); req(); });
     layout();
     update();
     road.relayout = () => { layout(); update(); };
@@ -588,7 +596,7 @@
       steps.forEach((s) => s.classList.toggle('on', +s.dataset.step === st));
       if (!n || wide.matches) return;
       now.classList.add('swap');
-      setTimeout(() => { now.firstChild.textContent = st + '/4'; now.lastChild.textContent = LABELS[n]; now.classList.remove('swap'); }, 200);
+      setTimeout(() => { now.firstChild.textContent = st + '/4'; now.lastChild.textContent = LABELS[n]; now.classList.remove('swap'); }, 120);
     };
     // shrink the sheet (CSS zoom keeps layout honest) so it is never cut off by the screen
     const fit = () => {
@@ -604,7 +612,7 @@
       // phone: the sheet fills itself in a loop (0 → 8, hold, clear, again), independent of scrolling;
       // the timer only runs while the receipt is on screen
       let timer = 0, seen = false, n = 0;
-      const STEP = 1100, HOLD = 2600, BLANK = 900;
+      const STEP = 480, HOLD = 2000, BLANK = 600;
       const loop = () => {
         timer = 0;
         if (wide.matches || !seen) return;
@@ -638,7 +646,7 @@
     };
     const relayout = () => { fit(); sizeLast(); if (road && road.relayout) road.relayout(); };
     relayout();
-    addEventListener('resize', relayout);
+    onResize(relayout);
     wide.addEventListener('change', relayout);
   }
 
@@ -758,7 +766,7 @@
       if (visible && !reduce && !capture) raf = requestAnimationFrame(draw);
     };
     size();
-    addEventListener('resize', () => { size(); draw(performance.now()); });
+    onResize(() => { size(); draw(performance.now()); });
     new IntersectionObserver(([en]) => {
       visible = en.isIntersecting;
       cancelAnimationFrame(raf);
