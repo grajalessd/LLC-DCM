@@ -285,8 +285,19 @@ body.menu-open{overflow:hidden}
   .step:not(.on) h3{color:#4d5f7a}
   .step:not(.on) p{color:#5d6f89}
   .step h3,.step p{transition:color .6s var(--ease-out)}
-  .receipt-slot{position:sticky;top:calc(var(--head-h) + 40px)}
+  .receipt-slot{position:sticky;top:calc(var(--head-h) + 24px)}
   .receipt{padding:32px 30px 26px}
+}
+/* receipt is zoomed (main.js) so the whole sheet always fits on screen */
+.rc-now{display:none}
+@media (max-width:959.98px){
+  /* phone: the receipt pins on screen and fills in step by step as you scroll the track */
+  .receipt-slot.pinned{height:300vh;height:300svh}
+  .pinned .receipt-pin{position:sticky;top:calc(var(--head-h) + 10px)}
+  .pinned .rc-now{display:flex;align-items:baseline;gap:.6rem;max-width:460px;margin:0 auto 10px;font:700 1rem/1.2 var(--display);color:var(--navy)}
+  .rc-now b{flex:none;color:#fff;background:var(--red);border-radius:999px;padding:.28rem .55rem .24rem;font-size:.8rem;letter-spacing:.06em}
+  .rc-now span{transition:opacity .4s var(--ease-out)}
+  .rc-now.swap span{opacity:0}
 }
 
 /* ---------- haul ---------- */
@@ -323,22 +334,14 @@ body.menu-open{overflow:hidden}
 .mf-col li.hit em{color:inherit;opacity:.85}
 .limits{display:grid;gap:22px;margin-top:clamp(48px,7vw,84px);align-items:center}
 .van-side{width:100%;max-width:560px;overflow:visible}
-.vs-body{fill:#fff;stroke:var(--navy);stroke-width:3}
-.vs-glass{fill:#c9d7e8;stroke:var(--navy);stroke-width:2.5;stroke-linejoin:round}
-.vs-line{stroke:var(--navy);stroke-width:2;opacity:.4;fill:none}
-.vs-handle{fill:var(--navy);opacity:.5}
-.vs-cargo{fill:rgba(178,34,52,.05);stroke:var(--red);stroke-width:2;stroke-dasharray:7 6}
+.vs-cargo{fill:rgba(255,255,255,.72);stroke:var(--red);stroke-width:2;stroke-dasharray:7 6}
 .vs-box rect{fill:#e9dcc3;stroke:#8a6a3c;stroke-width:2}
 .vs-box path{stroke:#8a6a3c;stroke-width:2;opacity:.6}
 .vs-box{transform-box:fill-box;transform-origin:bottom;opacity:0;transform:translateY(-30px);transition:opacity .5s,transform .8s var(--ease-out)}
 .limits.in .vs-box{opacity:1;transform:none}
-.limits.in .vs-box:nth-of-type(2){transition-delay:.15s}
-.limits.in .vs-box:nth-of-type(3){transition-delay:.3s}
-.vs-kg{font:700 14px var(--display);fill:var(--red);letter-spacing:.02em}
-.vs-light{fill:#ffd36b;stroke:var(--navy);stroke-width:1.5}
-.vs-bumper{stroke:var(--navy);stroke-width:4;stroke-linecap:round}
-.vs-wheel circle:first-child{fill:var(--navy)}
-.vs-wheel circle:last-child{fill:#cfd9e6}
+.limits.in .vs-box.b2{transition-delay:.15s}
+.limits.in .vs-box.b3{transition-delay:.3s}
+.vs-kg{font:700 14px var(--display);fill:var(--red);letter-spacing:.02em;text-anchor:middle}
 .vs-ground{stroke:var(--navy);stroke-width:2;opacity:.25}
 .vs-dim path{stroke:var(--navy);stroke-width:1.6;fill:none}
 .vs-dim text{font:700 14px var(--display);fill:var(--navy);text-anchor:middle}
@@ -407,7 +410,7 @@ body.menu-open{overflow:hidden}
 .close p{color:var(--on-navy-2);max-width:52ch;font-size:1.12rem;margin-bottom:1.8rem}
 .close-road{position:relative;height:110px;margin-top:clamp(56px,8vw,96px);border-bottom:3px solid rgba(255,255,255,.14)}
 .close-road::after{content:"";position:absolute;left:0;right:0;bottom:22px;height:3px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.35) 0 40px,transparent 40px 76px)}
-.close-van{position:absolute;bottom:30px;left:0;width:118px;height:56px;transform:translateX(-140px)}
+.close-van{position:absolute;bottom:26px;left:0;width:150px;height:67px;transform:translateX(-170px)}
 .close.in .close-van{animation:drive 7s var(--ease-io) .3s forwards}
 @keyframes drive{0%{transform:translateX(-140px)}45%,58%{transform:translateX(calc(50vw - 60px))}100%{transform:translateX(calc(100vw + 40px))}}
 @media (prefers-reduced-motion:reduce){.close.in .close-van{animation:none;transform:translateX(calc(50vw - 60px))}}
@@ -431,19 +434,41 @@ body.menu-open{overflow:hidden}
 
 /* ---------- intro (home, first visit only) ---------- */
 .intro-screen{display:none}
-.intro .intro-screen{display:grid;place-items:center;position:fixed;inset:0;z-index:300;background:var(--navy);animation:intro-out .8s var(--ease-io) 2.05s forwards}
+html{scrollbar-gutter:stable}
+/* fallback: if JS never runs, the screen still leaves on its own */
+.intro .intro-screen{display:grid;place-items:center;position:fixed;inset:0;z-index:300;background:var(--navy);animation:intro-out .9s var(--ease-io) 6.2s forwards;transition:opacity .9s var(--ease-io)}
 .intro body{overflow:hidden}
-.intro-stage{position:relative;width:min(560px,86vw);height:120px}
+.intro-stage{position:relative;width:min(760px,92vw);height:clamp(220px,46vw,300px);transition:transform 1s var(--ease-io),opacity .8s var(--ease-io)}
 .intro-road{position:absolute;left:0;right:0;bottom:8px;width:100%;height:8px}
-.intro-road path{stroke:var(--red);stroke-width:8;stroke-dasharray:600;stroke-dashoffset:600;animation:road .9s var(--ease-out) .1s forwards}
-.intro-van{position:absolute;bottom:14px;left:0;width:96px;height:45px;transform:translateX(-120px);animation:intro-van 1.5s var(--ease-io) .25s forwards}
-.intro-mark{position:absolute;left:50%;bottom:62px;transform:translateX(-50%);display:flex;align-items:flex-start;gap:.3rem;color:#fff;clip-path:inset(0 100% 0 0);animation:mark 1s var(--ease-out) .85s forwards}
-.intro-mark .wm-dcm{font-size:clamp(3rem,12vw,4.6rem)}
-.intro-mark .wm-star{width:1.6rem;height:1.6rem;transform:translateY(.5rem)}
+.intro-road path{stroke:var(--red);stroke-width:8;stroke-dasharray:600;stroke-dashoffset:600;animation:road 1.1s var(--ease-out) .1s forwards}
+.intro-van{position:absolute;bottom:4px;left:0;z-index:2;width:clamp(210px,58vw,360px);height:auto;aspect-ratio:260/116;transform:translateX(-100vw);will-change:transform}
+.intro-screen{overflow:hidden}
+/* letters drop like packages off the back of the van and settle on the road (triggered from main.js) */
+.intro-mark{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;align-items:flex-end;gap:.3rem;color:#fff}
+.intro-mark .wm-dcm{display:flex}
+.intro-mark .drop{display:inline-block;opacity:0;transform-origin:50% 100%}
+.intro-mark .drop.fall{animation:pkg-drop .95s both}
+@keyframes pkg-drop{
+  0%{opacity:0;transform:translateY(-160px) rotate(var(--r,-10deg));animation-timing-function:cubic-bezier(.55,0,1,.6)}
+  10%{opacity:1}
+  50%{transform:translateY(0) rotate(0) scale(1,1);animation-timing-function:cubic-bezier(.2,.7,.3,1)}
+  60%{transform:translateY(0) scale(1.12,.84);animation-timing-function:cubic-bezier(.2,.7,.3,1)}
+  76%{transform:translateY(-14px) rotate(calc(var(--r,-10deg) * -.2)) scale(.97,1.04);animation-timing-function:cubic-bezier(.5,0,.8,.6)}
+  88%{transform:translateY(0) scale(1.04,.95)}
+  100%{opacity:1;transform:none}}
+.intro-leave .intro-screen{opacity:0;animation:none}
+.intro-leave .intro-stage{transform:translateY(-18px) scale(.97);opacity:0}
+/* hero settles in softly right after the intro */
+.intro .hero-copy>*{animation:hero-in 1.1s var(--ease-out) 6.4s both}
+.hero-in .hero-copy>*{animation:hero-in 1.1s var(--ease-out) both}
+.hero-in .hero-copy>:nth-child(2){animation-delay:.12s}
+.hero-in .hero-copy>:nth-child(3){animation-delay:.22s}
+.hero-in .hero-copy>:nth-child(n+4){animation-delay:.32s}
+@keyframes hero-in{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+.intro-mark .wm-dcm{font-size:clamp(3.4rem,15vw,6rem);line-height:.8}
+.intro-mark .wm-star{width:clamp(1.4rem,5vw,2rem);height:clamp(1.4rem,5vw,2rem);align-self:flex-start}
 @keyframes road{to{stroke-dashoffset:0}}
-@keyframes intro-van{to{transform:translateX(min(600px,92vw))}}
-@keyframes mark{to{clip-path:inset(0 0 0 0)}}
-@keyframes intro-out{to{clip-path:inset(0 0 100% 0);visibility:hidden}}
+@keyframes intro-out{to{opacity:0;visibility:hidden}}
 
 /* ---------- terms page ---------- */
 .terms{background:var(--paper);padding:clamp(48px,8vw,104px) 0 var(--sec)}
@@ -467,8 +492,7 @@ body.menu-open{overflow:hidden}
 /* ===== v2: LLC DCM name, stars map, reach checker, road van, flag ===== */
 .wm-llc{font:800 .7rem/1 var(--display);letter-spacing:.14em;color:var(--on-navy-2);padding:.24rem .34rem .2rem;border-radius:3px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.4);margin-right:.1rem;align-self:center}
 .rc-brand .wm-llc{color:var(--navy);box-shadow:inset 0 0 0 1px rgba(11,37,69,.45);font-size:.7rem;padding:.2rem .28rem .16rem}
-.intro-mark{align-items:center}
-.intro-mark .wm-llc{font-size:1rem;padding:.35rem .5rem .28rem;margin-right:.5rem}
+.intro-mark .wm-llc{font-size:clamp(.9rem,3.4vw,1.2rem);padding:.35rem .5rem .28rem;margin:0 .5rem .3rem 0;align-self:flex-end}
 
 .map .reach-fill{fill:rgba(255,255,255,.03)}
 .map .ring-1,.map .ring-2{stroke:rgba(255,255,255,.16)}

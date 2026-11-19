@@ -33,9 +33,34 @@
   // ---- Intro (home, first visit in this tab session) ----
   let introMs = 0;
   if (root.classList.contains('intro')) {
-    introMs = 2700;
     try { sessionStorage.setItem('dcm-intro', '1'); } catch (e) {}
-    setTimeout(() => root.classList.remove('intro'), 2900);
+    const stage = $('.intro-stage'), van = $('.intro-van'), mark = $('.intro-mark');
+    const START = 250, DRIVE = 3600, HOLD = 1000, LEAVE = 950;
+    introMs = START + DRIVE + HOLD;
+    const vw = van.getBoundingClientRect().width;
+    const sL = stage.getBoundingClientRect().left;
+    // each letter is a package that drops off the back of the van once it has passed
+    const tilt = [-14, 11, -8, 13, -11, 18];
+    const drops = $$('.drop', mark).map((el, i) => {
+      const r = el.getBoundingClientRect();
+      el.style.setProperty('--r', tilt[i % tilt.length] + 'deg');
+      return { el, cx: r.left - sL + r.width / 2, done: false };
+    });
+    // enters and leaves from beyond the screen edges
+    const x0 = -sL - vw - 10, x1 = innerWidth - sL + 10;
+    const ease = (t) => -(Math.cos(Math.PI * t) - 1) / 2; // smooth in & out
+    let t0 = null;
+    const frame = (now) => {
+      if (t0 === null) t0 = now;
+      const p = Math.min(Math.max((now - t0 - START) / DRIVE, 0), 1);
+      const x = x0 + (x1 - x0) * ease(p);
+      van.style.transform = `translateX(${x}px)`;
+      drops.forEach((d) => { if (!d.done && (x > d.cx + 8 || p === 1)) { d.done = true; d.el.classList.add('fall'); } });
+      if (p < 1) requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+    setTimeout(() => root.classList.add('intro-leave', 'hero-in'), introMs);
+    setTimeout(() => root.classList.remove('intro', 'intro-leave'), introMs + LEAVE);
   }
 
   // ---- Header / menu ----
@@ -232,7 +257,7 @@
     // van
     const van = el('g', { class: 'map-van gone' }, gTop);
     const vs = el('g', { class: 'sc' }, van);
-    el('use', { href: '#van-glyph', x: -23, y: -20, width: 46, height: 22 }, vs);
+    el('use', { href: '#van-tc', x: -25, y: -20, width: 50, height: 22.3 }, vs);
 
     // camera
     let vb = [0, 0, 760, 270];
@@ -488,20 +513,48 @@
       receipt.dataset.state = n;
       steps.forEach((s) => s.classList.toggle('on', +s.dataset.step === n));
     };
+    const slot = $('.receipt-slot'), now = $('.rc-now');
+    // shrink the sheet (CSS zoom keeps layout honest) so it is never cut off by the screen
+    const fit = () => {
+      receipt.style.zoom = 1;
+      const headH = parseFloat(getComputedStyle(root).getPropertyValue('--head-h')) || 64;
+      const room = innerHeight - headH - (wide.matches ? 48 : 20 + (now.offsetHeight || 0) + 10);
+      receipt.style.zoom = Math.max(0.55, Math.min(1, room / receipt.offsetHeight)).toFixed(3);
+    };
     if (reduce || capture) setState(4);
     else {
+      slot.classList.add('pinned');
+      let cur = 0;
+      const titles = steps.map((s) => $('h3', s).textContent);
+      const setPhone = (n) => {
+        if (n === cur) return;
+        cur = n; receipt.dataset.state = n;
+        if (!n) return;
+        now.classList.add('swap');
+        setTimeout(() => { now.firstChild.textContent = n + '/4'; now.lastChild.textContent = titles[n - 1]; now.classList.remove('swap'); }, 200);
+      };
+      // desktop: the step in the middle of the screen drives the receipt
       const stepIO = new IntersectionObserver((ents) => {
         if (!wide.matches) return;
         ents.forEach((en) => { if (en.isIntersecting) setState(+en.target.dataset.step); });
       }, { rootMargin: '-40% 0px -50% 0px' });
       steps.forEach((s) => stepIO.observe(s));
-      let played = false;
-      new IntersectionObserver(([en]) => {
-        if (wide.matches || played || !en.isIntersecting) return;
-        played = true;
-        [1, 2, 3, 4].forEach((n, i) => setTimeout(() => { receipt.dataset.state = n; }, 200 + i * 1100));
-      }, { threshold: 0.45 }).observe(receipt);
+      // phone: progress through the pinned track drives the receipt
+      let tick = false;
+      const track = () => {
+        tick = false;
+        if (wide.matches) return;
+        const r = slot.getBoundingClientRect(), pin = slot.firstElementChild.offsetHeight;
+        const p = (innerHeight * 0.15 - r.top) / Math.max(1, r.height - pin);
+        // stays blank until the sheet is well on screen, so the first ink is seen
+        setPhone(r.top > innerHeight * 0.45 ? 0 : Math.max(1, Math.min(4, 1 + Math.floor(p * 4))));
+      };
+      addEventListener('scroll', () => { if (!tick) { tick = true; requestAnimationFrame(track); } }, { passive: true });
+      track();
     }
+    fit();
+    addEventListener('resize', fit);
+    wide.addEventListener('change', fit);
   }
 
   // ---- Will it ride? item checker ----
