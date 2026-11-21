@@ -68,7 +68,7 @@
     const tilt = [-11, 9, -7, 10, -9, 12];
     const drops = $$('.drop', mark).map((el, i) => {
       const r = el.getBoundingClientRect();
-      const w = r.width + 6, h = Math.min(r.height + 8, vh * 0.62);
+      const w = r.width * 0.86 + 4, h = Math.min(r.height + 8, vh * 0.62);
       const box = document.createElement('div');
       box.className = 'pkg';
       box.style.cssText = `width:${w}px;height:${h}px`;
