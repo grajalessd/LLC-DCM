@@ -43,7 +43,7 @@
   if (root.classList.contains('intro')) {
     try { sessionStorage.setItem('dcm-intro', '1'); } catch (e) {}
     const stage = $('.intro-stage'), van = $('.intro-van'), mark = $('.intro-mark');
-    const START = 120, DRIVE = 1500, HOLD = 1100, LEAVE = 750;
+    const START = 120, DRIVE = 1500, HOLD = 1800, LEAVE = 750;
     introMs = START + DRIVE + HOLD;
     // lock the page while the intro plays and always start at the very top
     try { history.scrollRestoration = 'manual'; } catch (e) {}
@@ -102,6 +102,8 @@
         d.box.classList.add('open');
         d.el.classList.add('show');
         setTimeout(() => d.box.remove(), 800);
+        // once every letter is out, the symbol rises from the name and the tagline opens
+        if (drops.every((o) => o.open)) setTimeout(() => { mark.classList.add('done'); stage.classList.add('done'); }, 250);
       }
     };
     let t0 = null;

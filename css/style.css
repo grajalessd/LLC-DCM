@@ -12,8 +12,8 @@
   --navy-2:#13315C;
   --navy-3:#1c4170;
   --navy-deep:#071a33;
-  --red:#B22234;
-  --red-hi:#9c1b2c;
+  --red:#CA2133;
+  --red-hi:#A81A2B;
   --white:#fff;
   --paper:#F7F5F0;
   --mist:#EAF0F6;
@@ -442,7 +442,7 @@ body.menu-open{overflow:hidden}
 .intro-screen{display:none}
 html{scrollbar-gutter:stable}
 /* fallback: if JS never runs, the screen still leaves on its own */
-.intro .intro-screen{display:grid;place-items:center;position:fixed;inset:0;z-index:300;background:var(--navy);animation:intro-out .8s var(--ease-io) 3.4s forwards;transition:opacity .9s var(--ease-io)}
+.intro .intro-screen{display:grid;place-items:center;position:fixed;inset:0;z-index:300;background:var(--navy);animation:intro-out .8s var(--ease-io) 4.4s forwards;transition:opacity .9s var(--ease-io)}
 .intro,.intro body{overflow:hidden;overscroll-behavior:none;touch-action:none}
 .intro-stage{position:relative;width:min(1000px,96vw);height:clamp(260px,58vw,390px);transition:transform 1s var(--ease-io),opacity .8s var(--ease-io)}
 .intro-road{position:absolute;left:0;right:0;bottom:8px;width:100%;height:8px}
@@ -478,7 +478,7 @@ html{scrollbar-gutter:stable}
 .intro-leave .intro-screen{opacity:0;animation:none}
 .intro-leave .intro-stage{transform:translateY(-18px) scale(.97);opacity:0}
 /* hero settles in softly right after the intro */
-.intro .hero-copy>*{animation:hero-in 1.1s var(--ease-out) 3.6s both}
+.intro .hero-copy>*{animation:hero-in 1.1s var(--ease-out) 4.4s both}
 .hero-in .hero-copy>*{animation:hero-in 1.1s var(--ease-out) both}
 .hero-in .hero-copy>:nth-child(2){animation-delay:.12s}
 .hero-in .hero-copy>:nth-child(3){animation-delay:.22s}
@@ -603,3 +603,38 @@ html{scrollbar-gutter:stable}
 .flag-pole{position:absolute;left:0;top:4%;bottom:-24%;width:7px;border-radius:4px;background:linear-gradient(90deg,#7d8ea6,#e3e9f1 40%,#8f9fb5)}
 .flag-pole::before{content:"";position:absolute;left:50%;top:-12px;width:14px;height:14px;border-radius:50%;transform:translateX(-50%);background:radial-gradient(circle at 35% 35%,#fff3c4,#d9a93a 60%,#9c7420)}
 @media (min-width:900px){.close-grid{grid-template-columns:1.1fr 1fr;gap:56px}}
+/* ===== brand logo (assets/brand, cut from the client's logo files) ===== */
+/* header: imagotipo, symbol | name, like the brand sheet */
+.wordmark{gap:.75rem}
+.wm-iso{height:40px;width:auto;display:block}
+.wm-word{height:22px;width:auto;display:block;box-sizing:content-box;padding:9px 0 9px .75rem;border-left:1px solid rgba(255,255,255,.28)}
+@media (min-width:900px){.wm-iso{height:44px}.wm-word{height:25px;padding-block:9.5px}}
+/* footer: full isologo */
+.wm-full{width:clamp(150px,40vw,190px);height:auto;display:block}
+/* receipt letterhead, navy ink on paper */
+.rc-brand{gap:.45rem}
+.rc-iso{height:26px;width:auto}
+.rc-word{height:15px;width:auto;margin-right:.35rem}
+
+/* intro: the pieces of the real logo. LLC, D, C, M each ride out in a box (main.js);
+   then the symbol rises out of the name and CARGO & TRANSPORT opens under it */
+.intro-stage{--lw:clamp(260px,70vw,470px);height:calc(var(--lw) * .858 + 46px)}
+.intro-mark{display:block;bottom:30px;width:var(--lw);aspect-ratio:1027/881;gap:0}
+.intro-mark img{position:absolute;height:auto;display:block}
+.im-iso{left:22.88%;top:0;width:63.97%}
+.im-llc{left:7.69%;top:50.17%;width:20.45%}
+.im-d{left:1.56%;top:63%;width:34.37%}
+.im-c{left:35.44%;top:63.22%;width:27.75%}
+.im-m{left:60.27%;top:63.34%;width:37.1%}
+.im-tag{left:0;top:95.12%;width:100%}
+.im-iso,.im-tag{opacity:0}
+.intro-mark.done .im-iso{animation:iso-rise 1s cubic-bezier(.2,.9,.25,1) both}
+.intro-mark.done .im-tag{animation:tag-open .8s var(--ease-out) .3s both}
+.intro-road{transition:opacity .6s var(--ease-io)}
+.intro-stage.done .intro-road{opacity:0}
+@keyframes iso-rise{
+  0%{opacity:0;transform:translateY(34%) scale(.86);clip-path:inset(100% 0 0 0)}
+  35%{opacity:1}
+  70%{transform:translateY(-3%) scale(1.02)}
+  100%{opacity:1;transform:none;clip-path:inset(-10% 0 0 0)}}
+@keyframes tag-open{from{opacity:0;clip-path:inset(0 50% 0 50%)}to{opacity:1;clip-path:inset(0 0 0 0)}}
