@@ -7,3 +7,7 @@ brief-dcm-llc-claude-code.md
 logo/
 
 fotos/
+
+.DS_Store
+.claude/
+.env

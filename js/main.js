@@ -174,6 +174,50 @@
   const lanes = $('.lanes');
   if (lanes) new IntersectionObserver(([en]) => lanes.classList.toggle('live', en.isIntersecting)).observe(lanes);
 
+  // ---- The van: rear doors open with scroll ----
+  const cargo = $('.cargo-scroll');
+  if (cargo && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    let tick = 0, near = false;
+    const upd = () => {
+      tick = 0;
+      const r = cargo.getBoundingClientRect();
+      const p = Math.min(1, Math.max(0, -r.top / Math.max(1, r.height - innerHeight)));
+      cargo.style.setProperty('--p', p.toFixed(4));
+    };
+    const req = () => { if (near && !tick) tick = requestAnimationFrame(upd); };
+    new IntersectionObserver(([en]) => { near = en.isIntersecting; if (near) upd(); }, { rootMargin: '20% 0px' }).observe(cargo);
+    addEventListener('scroll', req, { passive: true });
+    addEventListener('resize', req);
+  }
+
+  // ---- Photo reel: drag with the mouse ----
+  const reel = $('.cargo-reel');
+  if (reel) {
+    let down = false, x0 = 0, s0 = 0, moved = false;
+    reel.addEventListener('pointerdown', (e) => {
+      if (e.pointerType !== 'mouse') return;
+      down = true; moved = false; x0 = e.clientX; s0 = reel.scrollLeft;
+    });
+    addEventListener('pointermove', (e) => {
+      if (!down) return;
+      const dx = e.clientX - x0;
+      if (!moved && Math.abs(dx) > 4) { moved = true; reel.classList.add('dragging'); }
+      if (moved) reel.scrollLeft = s0 - dx;
+    });
+    addEventListener('pointerup', () => {
+      if (!down) return;
+      down = false;
+      if (!moved) return;
+      const left = reel.scrollLeft;
+      reel.classList.remove('dragging');
+      reel.scrollLeft = left;
+      const figs = [...reel.children];
+      const pad = parseFloat(getComputedStyle(reel).scrollPaddingLeft) || 0;
+      const target = figs.reduce((best, f) => (Math.abs(f.offsetLeft - pad - left) < Math.abs(best - left) ? f.offsetLeft - pad : best), 0);
+      reel.scrollTo({ left: target, behavior: 'smooth' });
+    });
+  }
+
   const fab = $('.wa-float');
   setTimeout(() => fab && fab.classList.add('show'), introMs + 600);
 
